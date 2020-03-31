@@ -21,12 +21,6 @@ func init() {
 	NormalizedDateTime = time.Date(1980, time.January, 1, 0, 0, 1, 0, time.UTC)
 }
 
-type TarWriter interface {
-	WriteHeader(hdr *tar.Header) error
-	Write(b []byte) (int, error)
-	Close() error
-}
-
 func ReadDirAsTar(srcDir, basePath string, uid, gid int, mode int64, normalizeModTime bool) io.ReadCloser {
 	return GenerateTar(func(tw TarWriter) error {
 		return WriteDirToTar(tw, srcDir, basePath, uid, gid, mode, normalizeModTime)
@@ -40,26 +34,18 @@ func ReadZipAsTar(srcPath, basePath string, uid, gid int, mode int64, normalizeM
 }
 
 func GenerateTar(genFn func(TarWriter) error) io.ReadCloser {
-	return GenerateTarWithWriter(genFn, func(w io.Writer) (TarWriter, error) {
-		// Use non-OS-specific tar writer by default
-		return tar.NewWriter(w), nil
-	})
+	return GenerateTarWithWriter(genFn, DefaultTarWriterFactory)
 }
 
-// GenerateTar returns a reader to a tar from a generator function. Note that the
+// GenerateTar returns a reader to a tar from a generator function using a factory writer. Note that the
 // generator will not fully execute until the reader is fully read from. Any errors
 // returned by the generator will be returned when reading the reader.
-func GenerateTarWithWriter(genFn func(TarWriter) error, writerFn func(io.Writer) (TarWriter, error)) io.ReadCloser {
+func GenerateTarWithWriter(genFn func(TarWriter) error, tarWriterFactory TarWriterFactory) io.ReadCloser {
 	errChan := make(chan error)
 	pr, pw := io.Pipe()
 
 	go func() {
-		tw, err := writerFn(pw)
-		if err != nil {
-			errChan <- err
-			return
-		}
-
+		tw := tarWriterFactory.NewTarWriter(pw)
 		defer func() {
 			if r := recover(); r != nil {
 				tw.Close()
@@ -67,7 +53,7 @@ func GenerateTarWithWriter(genFn func(TarWriter) error, writerFn func(io.Writer)
 			}
 		}()
 
-		err = genFn(tw)
+		err := genFn(tw)
 
 		closeErr := tw.Close()
 		closeErr = aggregateError(closeErr, pw.CloseWithError(err))

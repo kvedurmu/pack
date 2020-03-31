@@ -2,27 +2,33 @@ package layer
 
 import (
 	"archive/tar"
+	"github.com/buildpacks/pack/internal/archive"
 	"io"
 
 	"github.com/buildpacks/imgutil"
 )
 
-type TarWriter interface {
-	WriteHeader(hdr *tar.Header) error
-	Write(b []byte) (int, error)
-	Close() error
+type tarWriterFactory struct {
+	os string
 }
 
 // TODO: Move to method on `imgutil.Image`
-func NewWriterForImage(image imgutil.Image, fileWriter io.Writer) (TarWriter, error) {
+func NewTarWriterFactory(image imgutil.Image) (archive.TarWriterFactory, error) {
 	os, err := image.OS()
 	if err != nil {
 		return nil, err
 	}
-	if os == "windows" {
-		return NewWindowsWriter(fileWriter), nil
+
+	return tarWriterFactory{os: os}, nil
+}
+
+func (f tarWriterFactory) NewTarWriter(fileWriter io.Writer) archive.TarWriter {
+	if f.os == "windows" {
+		return NewWindowsWriter(fileWriter)
 	}
-	return tar.NewWriter(fileWriter), nil
+
+	// Linux images use tar.Writer
+	return tar.NewWriter(fileWriter)
 }
 
 /*

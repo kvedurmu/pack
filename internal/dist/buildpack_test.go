@@ -1,7 +1,6 @@
 package dist_test
 
 import (
-	"archive/tar"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -67,7 +66,7 @@ id = "some.stack.id"
 						return tarBuilder.Reader()
 					},
 				},
-				defaultTarWriter,
+				archive.DefaultTarWriterFactory,
 			)
 			h.AssertNil(t, err)
 
@@ -99,7 +98,7 @@ id = "some.stack.id"
 						return tarBuilder.Reader()
 					},
 				},
-				defaultTarWriter,
+				archive.DefaultTarWriterFactory,
 			)
 			h.AssertNil(t, err)
 
@@ -164,7 +163,7 @@ id = "some.stack.id"
 				&errorBlob{
 					realBlob: realBlob,
 				},
-				defaultTarWriter,
+				archive.DefaultTarWriterFactory,
 			)
 			h.AssertNil(t, err)
 
@@ -198,7 +197,7 @@ id = "some.stack.id"
 								return tarBuilder.Reader()
 							},
 						},
-						defaultTarWriter,
+						archive.DefaultTarWriterFactory,
 					)
 					h.AssertNil(t, err)
 
@@ -224,7 +223,7 @@ id = "some.stack.id"
 								return tarBuilder.Reader()
 							},
 						},
-						defaultTarWriter,
+						archive.DefaultTarWriterFactory,
 					)
 					h.AssertNil(t, err)
 
@@ -254,7 +253,7 @@ id = "some.stack.id"
 								return tarBuilder.Reader()
 							},
 						},
-						defaultTarWriter,
+						archive.DefaultTarWriterFactory,
 					)
 					h.AssertNil(t, err)
 
@@ -279,7 +278,7 @@ id = "some.stack.id"
 								return tarBuilder.Reader()
 							},
 						},
-						defaultTarWriter,
+						archive.DefaultTarWriterFactory,
 					)
 					h.AssertNil(t, err)
 
@@ -303,7 +302,7 @@ id = "some.stack.id"
 							return tarBuilder.Reader()
 						},
 					},
-					defaultTarWriter,
+					archive.DefaultTarWriterFactory,
 				)
 				h.AssertError(t, err, "could not find entry path 'buildpack.toml'")
 			})
@@ -325,7 +324,7 @@ id = "some.stack.id"`))
 							return tarBuilder.Reader()
 						},
 					},
-					defaultTarWriter,
+					archive.DefaultTarWriterFactory,
 				)
 				h.AssertNil(t, err)
 				h.AssertEq(t, bp.Descriptor().API.String(), "0.1")
@@ -348,7 +347,7 @@ id = "some.stack.id"`))
 							return tarBuilder.Reader()
 						},
 					},
-					defaultTarWriter,
+					archive.DefaultTarWriterFactory,
 				)
 				h.AssertError(t, err, "'buildpack.id' is required")
 			})
@@ -370,7 +369,7 @@ id = "some.stack.id"`))
 							return tarBuilder.Reader()
 						},
 					},
-					defaultTarWriter,
+					archive.DefaultTarWriterFactory,
 				)
 				h.AssertError(t, err, "'buildpack.version' is required")
 			})
@@ -398,7 +397,7 @@ id = "some.stack.id"
 							return tarBuilder.Reader()
 						},
 					},
-					defaultTarWriter,
+					archive.DefaultTarWriterFactory,
 				)
 				h.AssertError(t, err, "cannot have both 'stacks' and an 'order' defined")
 			})
@@ -418,16 +417,12 @@ version = "1.2.3"
 							return tarBuilder.Reader()
 						},
 					},
-					defaultTarWriter,
+					archive.DefaultTarWriterFactory,
 				)
 				h.AssertError(t, err, "must have either 'stacks' or an 'order' defined")
 			})
 		})
 	})
-}
-
-func defaultTarWriter(w io.Writer) (archive.TarWriter, error) {
-	return tar.NewWriter(w), nil
 }
 
 type errorBlob struct {
